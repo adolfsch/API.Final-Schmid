@@ -99,7 +99,7 @@ class AdminTarea:
         self.cursor.execute(query, (tarea_id,))
         self.conn.commit()
 
-    def traer_todas_tareas(self):
+    def traer_todas_tareas(self):   #Revisar
         query = '''
         SELECT * FROM tareas
         '''
@@ -130,7 +130,7 @@ class AdminTarea:
         return self.cursor.lastrowid
     
 
-    def verificar_credenciales(self, nombre, contraseña):
+    def verificar_credenciales(self, nombre, contraseña):    #Se posiciona el cursor en Personas de DataBase y verifica 
         query = '''
         SELECT * FROM personas WHERE nombre = ? AND contraseña = ?
         '''
@@ -201,7 +201,7 @@ def verificar_credenciales(admin):
 
 admin = AdminTarea('database.sqlite')   #Esto crea la base de datos
 persona1 = Persona("admin", "admin")   #Esto crea usuario "ADMIN"
-admin.agregar_persona(persona1)   #Se va a data base
+admin.agregar_persona(persona1)   #Se va a data base codificando contraseña
 
 # Verificar credenciales
 if verificar_credenciales(admin):       

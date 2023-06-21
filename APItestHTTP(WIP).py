@@ -1,9 +1,9 @@
+from flask import Flask, request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import hashlib
-from datetime import datetime
-from flask import Flask, jsonify, request
- 
-app = Flask(__name__)          ###HACERLO API Con Requests
+from datetime import datetime 
+
 
 class Tarea:
     def __init__(self, titulo, descripcion, estado='pendiente', creada=None, actualizada=None):
@@ -13,13 +13,13 @@ class Tarea:
         self.creada = creada or datetime.now()
         self.actualizada = actualizada or datetime.now()
 
-class Persona:
-    def __init__(self, nombre, contrasena):
+class Persona:    #ESTA CLASE VA A ALMACENAR LA PERSONA DENTRO DE LA BASE DE DATOS
+    def __init__(self, nombre, contraseña):
         self.nombre = nombre
-        self.contrasena = contrasena
+        self.contraseña = contraseña
 
 class AdminTarea:
-    def __init__(self, db_path):
+    def __init__(self, db_path):       #Preparativos SQLITE 
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
         self._crear_tabla_tareas()
@@ -44,7 +44,7 @@ class AdminTarea:
         CREATE TABLE IF NOT EXISTS personas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT,
-            contrasena TEXT
+            contraseña TEXT
         )
         '''
         self.cursor.execute(query)
@@ -95,14 +95,14 @@ class AdminTarea:
         self.cursor.execute(query, values)
         self.conn.commit()
 
-    def eliminar_tarea(self, tarea_id):
+    def eliminar_tarea(self, tarea_id):  #Borra la tarea y su ID, Nunca se vuelve a reutilizar la misma ID.
         query = '''
         DELETE FROM tareas WHERE id = ?
         '''
         self.cursor.execute(query, (tarea_id,))
         self.conn.commit()
 
-    def traer_todas_tareas(self):
+    def traer_todas_tareas(self):   #Revisar
         query = '''
         SELECT * FROM tareas
         '''
@@ -117,89 +117,163 @@ class AdminTarea:
                 datetime.fromisoformat(tarea_data[4]),
                 datetime.fromisoformat(tarea_data[5])
             )
-            tarea.tarea_id = tarea_data[0]
+            tarea.tarea_id = tarea_data[0]  # Agregar el atributo tarea_id a la tarea
             tareas.append(tarea)
         return tareas
 
     def agregar_persona(self, persona):
         query = '''
-        INSERT INTO personas (nombre, contrasena)
+        INSERT INTO personas (nombre, contraseña)
         VALUES (?, ?)
         '''
-        contrasena_codificada = hashlib.md5(persona.contrasena.encode()).hexdigest()
-        values = (persona.nombre, contrasena_codificada)
+        contraseña_codificada = hashlib.md5(persona.contraseña.encode()).hexdigest()
+        values = (persona.nombre, contraseña_codificada)
         self.cursor.execute(query, values)
         self.conn.commit()
         return self.cursor.lastrowid
+    
 
-    def verificar_credenciales(self, nombre, contrasena):
+    def verificar_credenciales(self, nombre, contraseña):    #Se posiciona el cursor en Personas de DataBase y verifica 
         query = '''
-        SELECT * FROM personas WHERE nombre = ? AND contrasena = ?
+        SELECT * FROM personas WHERE nombre = ? AND contraseña = ?
         '''
-        contrasena_codificada = hashlib.md5(contrasena.encode()).hexdigest()
-        self.cursor.execute(query, (nombre, contrasena_codificada))
+        contraseña_codificada = hashlib.md5(contraseña.encode()).hexdigest()
+        self.cursor.execute(query, (nombre, contraseña_codificada))
         persona_data = self.cursor.fetchone()
         if persona_data:
             return True
         return False
 
-# Crear una instancia de AdminTarea con usuario admin
-admin = AdminTarea('db.sqlite')
-persona1 = Persona("admin", "admin")
-admin.agregar_persona(persona1)
+def mostrar_menu():  #MENU TERMINAL, TIENE QUE REMPLAZARSE POR UNO GRAFICO 
+    print("=== Menú de Tareas ===")
+    print("1. Agregar tarea")
+    print("2. Ver tarea")
+    print("3. Actualizar estado de tarea")
+    print("4. Eliminar tarea")
+    print("5. Ver todas las tareas")
+    print("0. Salir")
 
-# Rutas de la API
-@app.route('/tareas', methods=['GET'])
-def obtener_tareas():
+def agregar_tarea(admin):
+    titulo = input("Ingrese el título de la tarea: ")
+    descripcion = input("Ingrese la descripción de la tarea: ")
+    tarea = Tarea(titulo, descripcion)
+    tarea_id = admin.agregar_tarea(tarea)
+    print(f"Tarea agregada con ID: {tarea_id}")
+
+def ver_tarea(admin):
+    tarea_id = int(input("Ingrese el ID de la tarea: "))
+    tarea = admin.traer_tarea(tarea_id)
+    if tarea:
+        print(f"Título: {tarea.titulo}")
+        print(f"Descripción: {tarea.descripcion}")
+        print(f"Estado: {tarea.estado}")
+        print(f"Creada: {tarea.creada}")
+        print(f"Actualizada: {tarea.actualizada}")
+    else:
+        print("No se encontró ninguna tarea con ese ID")
+
+def actualizar_estado(admin):
+    tarea_id = int(input("Ingrese el ID de la tarea: "))
+    estado = input("Ingrese el nuevo estado de la tarea: ")
+    admin.actualizar_estado_tarea(tarea_id, estado)
+    print("Estado de la tarea actualizado correctamente")   
+
+def eliminar_tarea(admin):
+    tarea_id = int(input("Ingrese el ID de la tarea: "))
+    admin.eliminar_tarea(tarea_id)
+    print("Tarea eliminada correctamente")
+
+def ver_todas_tareas(admin):
     tareas = admin.traer_todas_tareas()
-    tareas_json = []
-    for tarea in tareas:
-        tarea_json = {
-            'id': tarea.tarea_id,
-            'titulo': tarea.titulo,
-            'descripcion': tarea.descripcion,
-            'estado': tarea.estado,
-            'creada': tarea.creada.isoformat(),
-            'actualizada': tarea.actualizada.isoformat()
-        }
-        tareas_json.append(tarea_json)
-    return jsonify(tareas_json)
+    if tareas:
+        for tarea in tareas:
+            print(f"ID: {tarea.tarea_id}, Título: {tarea.titulo}, Descripción: {tarea.descripcion}, Estado: {tarea.estado}")
+    else:
+        print("No hay tareas registradas")
 
-@app.route('/tareas', methods=['POST'])
+def verificar_credenciales(admin):
+    nombre = input("Ingrese su nombre: ")
+    contraseña = input("Ingrese su contraseña: ")
+    if admin.verificar_credenciales(nombre, contraseña):
+        return True
+    else:
+        print("Credenciales inválidas. Acceso denegado.")
+        return False
+
+# Crear una instancia de AdminTarea con usuario admin  
+
+admin = AdminTarea('database.sqlite')   #Esto crea la base de datos
+persona1 = Persona("admin", "admin")   #Esto crea usuario "ADMIN"
+admin.agregar_persona(persona1)   #Se va a data base codificando contraseña
+
+app = Flask(__name__)
+
+
+@app.route("/verificar", methods=['POST'])
+def verificar():
+    data = request.get_json()
+    nombre = data['nombre']
+    contraseña = data['contraseña']
+    if admin.verificar_credenciales(nombre, contraseña):
+        return jsonify({"mensaje": "Credenciales validadas correctamente."}), 200
+    else:
+        return jsonify({"mensaje": "Credenciales inválidas. Acceso denegado."}), 401
+
+@app.route("/tarea", methods=['POST'])
 def agregar_tarea():
     data = request.get_json()
     titulo = data['titulo']
     descripcion = data['descripcion']
     tarea = Tarea(titulo, descripcion)
     tarea_id = admin.agregar_tarea(tarea)
-    return jsonify({'id': tarea_id}), 201
+    return jsonify({"mensaje": f"Tarea agregada con ID: {tarea_id}"}), 201
 
-@app.route('/tareas/<int:tarea_id>', methods=['GET'])
-def obtener_tarea(tarea_id):
+@app.route("/tarea/<int:tarea_id>", methods=['GET'])
+def ver_tarea(tarea_id):
     tarea = admin.traer_tarea(tarea_id)
     if tarea:
-        tarea_json = {
-            'id': tarea.tarea_id,
-            'titulo': tarea.titulo,
-            'descripcion': tarea.descripcion,
-            'estado': tarea.estado,
-            'creada': tarea.creada.isoformat(),
-            'actualizada': tarea.actualizada.isoformat()
-        }
-        return jsonify(tarea_json)
-    return jsonify({'mensaje': 'Tarea no encontrada'}), 404
+        return jsonify({
+            "titulo": tarea.titulo,
+            "descripcion": tarea.descripcion,
+            "estado": tarea.estado,
+            "creada": tarea.creada.isoformat(),
+            "actualizada": tarea.actualizada.isoformat()
+        }), 200
+    else:
+        return jsonify({"mensaje": "No se encontró ninguna tarea con ese ID"}), 404
 
-@app.route('/tareas/<int:tarea_id>', methods=['PUT'])
-def actualizar_estado_tarea(tarea_id):
+@app.route("/tarea/<int:tarea_id>", methods=['PUT'])
+def actualizar_estado(tarea_id):
     data = request.get_json()
     estado = data['estado']
     admin.actualizar_estado_tarea(tarea_id, estado)
-    return jsonify({'mensaje': 'Estado de tarea actualizado correctamente'})
+    return jsonify({"mensaje": "Estado de la tarea actualizado correctamente"}), 200  
 
-@app.route('/tareas/<int:tarea_id>', methods=['DELETE'])
+@app.route("/tarea/<int:tarea_id>", methods=['DELETE'])
 def eliminar_tarea(tarea_id):
     admin.eliminar_tarea(tarea_id)
-    return jsonify({'mensaje': 'Tarea eliminada correctamente'})
+    return jsonify({"mensaje": "Tarea eliminada correctamente"}), 200
 
-if __name__ == '__main__':
-    app.run()
+@app.route("/tareas", methods=['GET'])
+def ver_todas_tareas():
+    tareas = admin.traer_todas_tareas()
+    if tareas:
+        tareas_dict = [
+            {
+                "id": tarea.tarea_id,
+                "titulo": tarea.titulo,
+                "descripcion": tarea.descripcion,
+                "estado": tarea.estado,
+                "creada": tarea.creada.isoformat(),
+                "actualizada": tarea.actualizada.isoformat()
+            }
+            for tarea in tareas
+        ]
+        return jsonify(tareas_dict), 200
+    else:
+        return jsonify({"mensaje": "No hay tareas registradas"}), 404
+
+if __name__ == "__main__":
+    persona1 = Persona("admin", generate_password_hash("admin"))
+    admin.agregar_persona(persona1)
+    app.run(debug=True)
