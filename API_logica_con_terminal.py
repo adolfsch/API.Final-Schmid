@@ -1,8 +1,6 @@
-from flask import Flask, request, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import hashlib
-from datetime import datetime 
+from datetime import datetime                  
 
 
 class Tarea:
@@ -137,8 +135,8 @@ class AdminTarea:
         query = '''
         SELECT * FROM personas WHERE nombre = ? AND contraseña = ?
         '''
-        contraseña_codificada = hashlib.md5(contraseña.encode()).hexdigest()
-        self.cursor.execute(query, (nombre, contraseña_codificada))
+        contraseña_codificada = hashlib.md5(contraseña.encode()).hexdigest()  #agarra la contraseña de terminal, hashea y verifica
+        self.cursor.execute(query, (nombre, contraseña_codificada))                 
         persona_data = self.cursor.fetchone()
         if persona_data:
             return True
@@ -206,74 +204,27 @@ admin = AdminTarea('database.sqlite')   #Esto crea la base de datos
 persona1 = Persona("admin", "admin")   #Esto crea usuario "ADMIN"
 admin.agregar_persona(persona1)   #Se va a data base codificando contraseña
 
-app = Flask(__name__)
-
-
-@app.route("/verificar", methods=['POST'])
-def verificar():
-    data = request.get_json()
-    nombre = data['nombre']
-    contraseña = data['contraseña']
-    if admin.verificar_credenciales(nombre, contraseña):
-        return jsonify({"mensaje": "Credenciales validadas correctamente."}), 200
-    else:
-        return jsonify({"mensaje": "Credenciales inválidas. Acceso denegado."}), 401
-
-@app.route("/tarea", methods=['POST'])
-def agregar_tarea():
-    data = request.get_json()
-    titulo = data['titulo']
-    descripcion = data['descripcion']
-    tarea = Tarea(titulo, descripcion)
-    tarea_id = admin.agregar_tarea(tarea)
-    return jsonify({"mensaje": f"Tarea agregada con ID: {tarea_id}"}), 201
-
-@app.route("/tarea/<int:tarea_id>", methods=['GET'])
-def ver_tarea(tarea_id):
-    tarea = admin.traer_tarea(tarea_id)
-    if tarea:
-        return jsonify({
-            "titulo": tarea.titulo,
-            "descripcion": tarea.descripcion,
-            "estado": tarea.estado,
-            "creada": tarea.creada.isoformat(),
-            "actualizada": tarea.actualizada.isoformat()
-        }), 200
-    else:
-        return jsonify({"mensaje": "No se encontró ninguna tarea con ese ID"}), 404
-
-@app.route("/tarea/<int:tarea_id>", methods=['PUT'])
-def actualizar_estado(tarea_id):
-    data = request.get_json()
-    estado = data['estado']
-    admin.actualizar_estado_tarea(tarea_id, estado)
-    return jsonify({"mensaje": "Estado de la tarea actualizado correctamente"}), 200  
-
-@app.route("/tarea/<int:tarea_id>", methods=['DELETE'])
-def eliminar_tarea(tarea_id):
-    admin.eliminar_tarea(tarea_id)
-    return jsonify({"mensaje": "Tarea eliminada correctamente"}), 200
-
-@app.route("/tareas", methods=['GET'])
-def ver_todas_tareas():
-    tareas = admin.traer_todas_tareas()
-    if tareas:
-        tareas_dict = [
-            {
-                "id": tarea.tarea_id,
-                "titulo": tarea.titulo,
-                "descripcion": tarea.descripcion,
-                "estado": tarea.estado,
-                "creada": tarea.creada.isoformat(),
-                "actualizada": tarea.actualizada.isoformat()
-            }
-            for tarea in tareas
-        ]
-        return jsonify(tareas_dict), 200
-    else:
-        return jsonify({"mensaje": "No hay tareas registradas"}), 404
-
-if __name__ == "__main__":
-    persona1 = Persona("admin", generate_password_hash("admin"))
-    admin.agregar_persona(persona1)
-    app.run(debug=True)
+# Verificar credenciales
+if verificar_credenciales(admin):       
+    # Menú temporal
+    while True:
+        mostrar_menu()
+        opcion = input("Ingrese una opción: ")
+        
+        if opcion == '1':
+            agregar_tarea(admin)
+        elif opcion == '2':
+            ver_tarea(admin)
+        elif opcion == '3':
+            actualizar_estado(admin)
+        elif opcion == '4':
+            eliminar_tarea(admin)
+        elif opcion == '5':
+            ver_todas_tareas(admin)
+        elif opcion == '0':
+            print("Saliendo del programa. Vote bien este año!")
+            break
+        else:
+            print("Opción inválida. Por favor, ingresa una opción válida.")
+else:
+    print("Acceso denegado. Verifique sus credenciales.")
