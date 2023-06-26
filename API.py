@@ -2,8 +2,10 @@ import sqlite3
 from fastapi import FastAPI, HTTPException
 from Clases import AdminTarea, Tarea as ClaseTarea, Persona as ClasePersona
 from pydantic import BaseModel
+import uvicorn
 
 app = FastAPI()
+conn = sqlite3.connect('database.sqlite')   #Por las dudas lo dejo
 admin_tarea = AdminTarea('database.sqlite')
 
 class Tarea(BaseModel):
@@ -28,7 +30,7 @@ async def obtener_tarea(tarea_id: int):
     tarea = admin_tarea.traer_tarea(tarea_id)
     if tarea is None:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
-    return vars(tarea)
+    return {"id": tarea_id, **vars(tarea)}
 
 @app.put("/tareas/{tarea_id}")
 async def actualizar_tarea(tarea_id: int, tarea: Tarea):
@@ -43,7 +45,7 @@ async def borrar_tarea(tarea_id: int):
 @app.get("/tareas/")
 async def obtener_todas_tareas():
     tareas = admin_tarea.traer_todas_tareas()
-    return [vars(tarea) for tarea in tareas]
+    return [{"id": i, **vars(tarea)} for i, tarea in enumerate(tareas, start=1)]
 
 @app.post("/personas/")
 async def agregar_persona(persona: Persona):
@@ -57,3 +59,5 @@ async def login(persona: Persona):
     if not es_valido:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     return {"mensaje": "Inicio de sesión exitoso"}
+
+uvicorn.run(app, host="localhost", port=8000) #En vez de siempre poner uvicorn API:app --reload

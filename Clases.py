@@ -152,7 +152,7 @@ admin = AdminTarea('database.sqlite')   #Esto crea la base de datos
 persona1 = Persona("admin", "admin")   #Esto crea usuario "ADMIN"
 admin.agregar_persona(persona1)   #Se va a data base codificando contraseña
 
-conn = sqlite3.connect('database.sqlite')
-cursor = conn.cursor()
-conn.commit()
-conn.close()
+#conn = sqlite3.connect('database.sqlite')
+#cursor = conn.cursor()
+#conn.commit()
+#conn.close()
