@@ -2,7 +2,7 @@ import requests
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
-#& C:/Users/adolf/AppData/Local/Programs/Python/Python311/python.exe "c:/Users/adolf/Desktop/testeos Practico Final/Interfaz_grafica_directadeAPI.py"
+#& C:/Users/adolf/AppData/Local/Programs/Python/Python311/python.exe "c:/Users/adolf/Desktop/Programacion Practico Final/API.Final-Schmid/Interfaz_grafica_directadeAPI.py"
 
 
 # Crear la ventana de inicio de sesión

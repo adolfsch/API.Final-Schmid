@@ -23,9 +23,9 @@ class Persona(BaseModel):
 async def crear_tarea(tarea: Tarea):
     tarea_obj = ClaseTarea(tarea.titulo, tarea.descripcion, tarea.estado, tarea.creada, tarea.actualizada)
     nueva_tarea_id = admin_tarea.agregar_tarea(tarea_obj)
-    return {"tarea_id": nueva_tarea_id}
+    return {"tarea_id": nueva_tarea_id}   #Devuelve la id por lastrowid en Clases.
 
-@app.get("/tareas/{tarea_id}")
+@app.get("/tareas/{tarea_id}") #Cuando hace una solicitud a una URL como /tareas/1, FastAPI entiende que el número 1 es el valor del parámetro tarea_id
 async def obtener_tarea(tarea_id: int):
     tarea = admin_tarea.traer_tarea(tarea_id)
     if tarea is None:
@@ -54,10 +54,10 @@ async def agregar_persona(persona: Persona):
     return {"persona_id": nueva_persona_id}
 
 @app.post("/login/")
-async def login(persona: Persona):
-    es_valido = admin_tarea.verificar_credenciales(persona.nombre, persona.contraseña)
+async def login(persona: Persona):            
+    es_valido = admin_tarea.verificar_credenciales(persona.nombre, persona.contraseña)  #Si verificar_credenciales tira false, es_valido tambien es false
     if not es_valido:
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    return {"mensaje": "Inicio de sesión exitoso"}
+    return {"mensaje": "Inicio de sesión perfecto"}
 
 uvicorn.run(app, host="localhost", port=8000) #En vez de siempre poner uvicorn API:app --reload

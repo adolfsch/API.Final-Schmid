@@ -5,7 +5,7 @@ from datetime import datetime
 
 
 
-class Tarea:
+class Tarea:               #Se especifica que contiene una tarea almacenada en database
     def __init__(self, titulo, descripcion, estado='pendiente', creada=None, actualizada=None):
         self.titulo = titulo
         self.descripcion = descripcion
@@ -13,19 +13,19 @@ class Tarea:
         self.creada = creada or datetime.now()
         self.actualizada = actualizada or datetime.now()
 
-class Persona:    #ESTA CLASE VA A ALMACENAR LA PERSONA DENTRO DE LA BASE DE DATOS
+class Persona:    #ESTA CLASE ESPECIFICA QUE VA A ALMACENAR LA PERSONA DENTRO DE LA BASE DE DATOS
     def __init__(self, nombre, contraseña):
         self.nombre = nombre
         self.contraseña = contraseña
 
-class AdminTarea:
+class AdminTarea:                   #Va a interactuar directamente con la database
     def __init__(self, db_path):       #Preparativos SQLITE 
-        self.conn = sqlite3.connect(db_path)
+        self.conn = sqlite3.connect(db_path)    #crea una conexion con la database para interactuar
         self.cursor = self.conn.cursor()
         self._crear_tabla_tareas()
         self._crear_tabla_personas()
 
-    def _crear_tabla_tareas(self):
+    def _crear_tabla_tareas(self):   #En id especificamos que siempre que se agregue una fila va a agregar una id nueva
         query = '''
         CREATE TABLE IF NOT EXISTS tareas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,14 +64,14 @@ class AdminTarea:
         )
         self.cursor.execute(query, values)
         self.conn.commit()
-        return self.cursor.lastrowid
+        return self.cursor.lastrowid  #lastrowid devuelve la ultima ID, esto lo va a devolver en request
 
     def traer_tarea(self, tarea_id):
         query = '''
         SELECT * FROM tareas WHERE id = ?
         '''
-        self.cursor.execute(query, (tarea_id,))
-        tarea_data = self.cursor.fetchone()
+        self.cursor.execute(query, (tarea_id,))  #se posiciona el cursor y lleva la ID
+        tarea_data = self.cursor.fetchone()  #fetchone compara y devuelve true o false
         if tarea_data:
             tarea = Tarea(
                 tarea_data[1],
@@ -138,8 +138,8 @@ class AdminTarea:
         SELECT * FROM personas WHERE nombre = ? AND contraseña = ?
         '''
         contraseña_codificada = hashlib.md5(contraseña.encode()).hexdigest()  #agarra la contraseña de terminal, hashea y verifica
-        self.cursor.execute(query, (nombre, contraseña_codificada))                 
-        persona_data = self.cursor.fetchone()
+        self.cursor.execute(query, (nombre, contraseña_codificada))  #se posiciona el cursor y lleva el nombre y contraseña para hacer la consulta            
+        persona_data = self.cursor.fetchone()   #fetchone compara y devuelve true o false
         if persona_data:
             return True
         return False
